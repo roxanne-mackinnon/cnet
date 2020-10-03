@@ -33,6 +33,19 @@ NeuralNet * initNet(int activationLayerCount, int * layerSizes) {
   result->layerSizes = layerSizes;
   result->weightLayers = calloc(activationLayerCount - 1, sizeof(Vector *));
   result->activationLayers = calloc(activationLayerCount, sizeof(Vector *));
+
+  // make sure the layers and weight matrices are there
+  // this can be a little slow because we will only do this function like once
+  // weight matrices
+  for (int i = 0; i < activationLayerCount - 1; i++) {
+    result->weightLayers[i] = initVector(layerSizes[i+1], layerSizes[i]);
+  }
+  
+  // activation layers
+  for (int i = 0; i < activationLayerCount; i++) {
+    result->activationLayers[i] = initVector(layerSizes[i], 1);
+  }
+
   return result;
 }
 
@@ -50,7 +63,7 @@ void randomizeWeights(NeuralNet * net) {
 
 
 float netGetNodeValue(NeuralNet * net, int nodeLayer, int nodeRow) {
-  return vectorGet(net->activationLayers[nodeLayer], nodeRow, 1);
+  return vectorGet(net->activationLayers[nodeLayer], nodeRow, 0);
 }
 
 float netGetWeightValue(NeuralNet * net, int weightLayer, int weightRow, int weightColumn) {
@@ -58,7 +71,7 @@ float netGetWeightValue(NeuralNet * net, int weightLayer, int weightRow, int wei
 }
 
 void netSetNodeValue(NeuralNet * net, int nodeLayer, int nodeRow, float value) {
-  vectorSet(net->activationLayers[nodeLayer], nodeRow, 1, value);
+  vectorSet(net->activationLayers[nodeLayer], nodeRow, 0, value);
 }
 
 void netSetWeightValue(NeuralNet * net, int weightLayer, int weightRow, int weightColumn, float value) {
@@ -72,18 +85,22 @@ void netCalculate(NeuralNet * net, Vector * input) {
   // i dont think this should cause a segfault.
   // we are telling the computer to free that vector *,
   // but then we put another vector * in its place.
-  vectorFree(net->activationLayers[0]);
-  net->activationLayers[0] = vectorCopy(input);
+  // right now, we dont care about wasted memory.
+  // we'd just like to see if theres a problem
+
+  // slow copy
+
+  vectorCopy(net->activationLayers[0], input);
+  
   Vector * multiple;
   Vector * application;
+  
   for (int i = 1; i < net->layerCount; i++) {
-
     multiple = vectorMultiply(net->weightLayers[i-1], net->activationLayers[i-1]);
     application = vectorApply(multiple, softMax);
-    vectorFree(multiple);
-    vectorFree(net->activationLayers[i]);
-    net->activationLayers[i] = vectorCopy(application);
-    vectorFree(application);
+    vectorCopy(net->activationLayers[i], application);
+    free(multiple);
+    free(application);
   }
   // hopefully free from memory leaks
   // test:

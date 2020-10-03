@@ -16,6 +16,8 @@ int main(int argc, char * argv[]) {
   randomizeWeights(net);
 
 
+  // the vectors should already be initialized
+
   Vector * input1;
   Vector * input2;
   Vector * input3;
@@ -26,20 +28,16 @@ int main(int argc, char * argv[]) {
 
   vectorRandomize(input1);
   vectorRandomize(input2);
-  vectorRandomize(input3);
+
+
+  /* vectorPrint(input1); */
+  /* printf("---\n"); */
+  /* vectorPrint(input2); */
+  /* printf("---\n"); */
 
   // lets just see for right now if this causes any problems
-
-  char c;
-  while (1) {
-    netCalculate(net, input1);
-    c = getchar();
-    netCalculate(net, input2);
-    c = getchar();
-    netCalculate(net, input3);
-    c = getchar();
-  }
-
-  c = getchar();
+  char c = getchar();
+  netCalculate(net, input1);
+  netCalculate(net, input2);
   return 0;
 }

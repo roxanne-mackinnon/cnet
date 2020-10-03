@@ -1,19 +1,32 @@
 #include "vector.h"
 
+// lets slightly change the vector implementation
 Vector * initVector(int height, int width) {
+  assert(height > 0);
+  assert(width > 0);
   Vector * result = calloc(1, sizeof(Vector));
+  // initialize the row pointers
   result->elements = calloc(height * width, sizeof(float));
+  // initialize each of the rows
   result->height = height;
   result->width = width;
   return result;
 }
 
 float vectorGet(Vector * v, int row, int column) {
-  return *(v->elements + row * v->width + column);
+  assert(row >= 0);
+  assert(column >= 0);
+  assert(row < v->height);
+  assert(column < v->width);
+  return v->elements[row * (v->width) + column];
 }
 
 void vectorSet(Vector * v, int row, int column, float element) {
-  *(v->elements + row * v->width + column) = element;
+  assert(row >= 0);
+  assert(column >= 0);
+  assert(row < v->height);
+  assert(column < v->width);
+  v->elements[row * (v->width) + column] = element;
 }
 
 
@@ -34,7 +47,7 @@ static float randomFloat(FILE * source) {
 
 
 void vectorRandomize(Vector * v) {
-  FILE * randomSource = fopen("/dev/random", "r");
+  FILE * randomSource = fopen("/dev/urandom", "r");
   for (int row = 0; row < v->height; row++) {
     for (int column = 0; column < v->width; column++) {
       vectorSet(v, row, column, randomFloat(randomSource));
@@ -45,24 +58,32 @@ void vectorRandomize(Vector * v) {
 
 
 
-
-
-Vector * vectorCopy(Vector * v) {
-  Vector * result = initVector(v->height, v->width);
+void vectorPrint(Vector * v) {
   for (int i = 0; i < v->height; i++) {
     for (int j = 0; j < v->width; j++) {
-      vectorSet(result, i, j, vectorGet(v, i, j));
+      printf("%-6.6f\t", vectorGet(v, i, j));
+    }
+    putchar('\n');
+  }
+}
+
+void vectorCopy(Vector * a, Vector * b) {
+  assert(a->height == b->height);
+  assert(a->width == b->width);
+  for (int i = 0; i < a->height; i++) {
+    for (int j = 0; j < a->width; j++) {
+      vectorSet(a, i, j, vectorGet(b, i, j));
     }
   }
-  return result;
 }
 
 // width of a must equal height of b
 Vector * vectorMultiply(Vector * a, Vector * b) {
+  assert(a->width == b->height);
   Vector * result = initVector(a->height, b->width);
   float sum;
   for (int a_row = 0; a_row < a->height; a_row++) {
-    for (int b_column = 0; b_column < a->width; b_column++) {
+    for (int b_column = 0; b_column < b->width; b_column++) {
       sum = 0;
       for (int row_index = 0; row_index < a->width; row_index++) {
 	sum += vectorGet(a, a_row, row_index) * vectorGet(b, row_index, b_column);

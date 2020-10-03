@@ -15,3 +15,4 @@ vector : vector.c vector.h
 
 clean :
 	rm -f neural_net.o vector.o test
+	rm -rf ./test.dSYM

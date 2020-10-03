@@ -3,6 +3,7 @@
 
 #include <stdlib.h>
 #include <stdio.h>
+#include <assert.h>
 
 struct Vector {
   int height;
@@ -25,7 +26,9 @@ void vectorFree(Vector * v);
 
 void vectorRandomize(Vector * v);
 
-Vector * vectorCopy(Vector * v); 
+void vectorPrint(Vector * v);
+
+void vectorCopy(Vector * a, Vector * b);
 
 // width of a must equal height of b
 Vector * vectorMultiply(Vector * a, Vector * b);
