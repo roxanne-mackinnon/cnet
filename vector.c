@@ -2,93 +2,86 @@
 
 // lets slightly change the vector implementation
 Vector * initVector(int height, int width) {
-  assert(height > 0);
-  assert(width > 0);
-  Vector * result = calloc(1, sizeof(Vector));
-  // initialize the row pointers
-  result->elements = calloc(height * width, sizeof(float));
-  // initialize each of the rows
+  
+  Vector * result = malloc(sizeof(Vector));
+  result->elements = malloc(height * width * sizeof(float));
+  
   result->height = height;
   result->width = width;
+  
   return result;
 }
 
-float vectorGet(Vector * v, int row, int column) {
-  assert(row >= 0);
-  assert(column >= 0);
-  assert(row < v->height);
-  assert(column < v->width);
-  return v->elements[row * (v->width) + column];
+float vectorGet(Vector * vec, int row, int column) {
+  return vec->elements[row * (vec->width) + column];
 }
 
-void vectorSet(Vector * v, int row, int column, float element) {
-  assert(row >= 0);
-  assert(column >= 0);
-  assert(row < v->height);
-  assert(column < v->width);
-  v->elements[row * (v->width) + column] = element;
+void vectorSet(Vector * vec, int row, int column, float element) {
+  vec->elements[row * (vec->width) + column] = element;
 }
 
+void vectorSetElements(Vector * vec, float * data) {
+  memcpy(vec->elements, data, (vec->width) * (vec->height) * sizeof(float));
+}
 
-void vectorFree(Vector * v) {
-  if (v == NULL) {
+int vectorEqual(Vector * left, Vector * right) {
+  if ((left->height != right->height) || (left->width != right->width)) {
+    return 0;
+  }
+
+  int byteCount = (left->height) * (left->width) * sizeof(float);
+
+  return !memcmp(left->elements, right->elements, byteCount);
+}
+
+void vectorFree(Vector * vec) {
+  if (vec == NULL) {
     return;
   }
 
-  free(v->elements);
-  free(v);
+  free(vec->elements);
+  free(vec);
   return;
 }
 
-static float randomFloat(FILE * source) {
-  char c = fgetc(source);
-  return ((float) c) / 128.0;
+float randomFloat() {
+  return (rand() - (RAND_MAX / 2)) / (float)RAND_MAX;
 }
 
-
-void vectorRandomize(Vector * v) {
-  FILE * randomSource = fopen("/dev/urandom", "r");
-  for (int row = 0; row < v->height; row++) {
-    for (int column = 0; column < v->width; column++) {
-      vectorSet(v, row, column, randomFloat(randomSource));
-    }
+// may cause a compiler error, as randomFloat doesn't take an argument.
+void vectorRandomize(Vector * vec) {
+  int count = (vec->height) * (vec->width);
+  for (int i = 0; i < count; i++) {
+    vec->elements[i] = randomFloat();
   }
-  fclose(randomSource);
 }
 
-
-
-void vectorPrint(Vector * v) {
-  for (int i = 0; i < v->height; i++) {
-    for (int j = 0; j < v->width; j++) {
-      printf("%-6.6f\t", vectorGet(v, i, j));
+void vectorPrint(Vector * vec) {
+  for (int i = 0; i < vec->height; i++) {
+    for (int j = 0; j < vec->width; j++) {
+      printf("%-6.6f\t", vectorGet(vec, i, j));
     }
     putchar('\n');
   }
+  putchar('\n');
 }
 
-void vectorCopy(Vector * a, Vector * b) {
-  assert(a->height == b->height);
-  assert(a->width == b->width);
-  for (int i = 0; i < a->height; i++) {
-    for (int j = 0; j < a->width; j++) {
-      vectorSet(a, i, j, vectorGet(b, i, j));
-    }
-  }
+// Assume that destination has the same dimensions as source.
+void vectorCopy(Vector * destination, Vector * source) {
+  memcpy(destination->elements, source->elements, (source->height) * (source->width) * sizeof(float));
 }
 
 // width of a must equal height of b
-Vector * vectorMultiply(Vector * a, Vector * b) {
-  assert(a->width == b->height);
-  Vector * result = initVector(a->height, b->width);
+Vector * vectorMultiply(Vector * left, Vector * right) {
+  Vector * result = initVector(left->height, right->width);
   float sum;
-  for (int a_row = 0; a_row < a->height; a_row++) {
-    for (int b_column = 0; b_column < b->width; b_column++) {
+  for (int leftRow = 0; leftRow < left->height; leftRow++) {
+    for (int rightCol = 0; rightCol < right->width; rightCol++) {
       sum = 0;
-      for (int row_index = 0; row_index < a->width; row_index++) {
-	sum += vectorGet(a, a_row, row_index) * vectorGet(b, row_index, b_column);
+      for (int i = 0; i < left->width; i++) {
+	sum += vectorGet(left, leftRow, i) * vectorGet(right, i, rightCol);
       }
-      vectorSet(result, a_row, b_column, sum);
+      vectorSet(result, leftRow, rightCol, sum);
     }
   }
   return result;
@@ -106,7 +99,7 @@ Vector * vectorAdd(Vector * a, Vector * b) {
 }
 
 // a must have same dimensions as b
-Vector * vectorSubstract(Vector * a, Vector * b) {
+Vector * vectorSubtract(Vector * a, Vector * b) {
   Vector * result = initVector(a->height, a->width);
   for (int row = 0; row < a->height; row++) {
     for (int column = 0; column < a->width; column++) {
@@ -128,13 +121,10 @@ Vector * vectorScale(Vector * a, float factor) {
 }
 
 
-// apply foo to all elements of a
-Vector * vectorApply(Vector * a, float (*foo)(float)) {
-  Vector * result = initVector(a->height, a->width);
-  for (int row = 0; row < a->height; row++) {
-    for (int column = 0; column < a->width; column++) {
-      vectorSet(result, row, column, foo(vectorGet(a, row, column)));
-    }
+// This should be the only one that modifies the original vector
+void vectorApply(Vector * vec, float (*foo)(float)) {
+  int count = vec->height * vec->width;
+  for (int i = 0; i < count; i++) {
+    vec->elements[i] = foo(vec->elements[i]);
   }
-  return result;
 }
