@@ -3,40 +3,41 @@
 
 // may not actually need this include
 #include <math.h>
-// used for /dev/random, a source for randomness
-#include <stdio.h>
+// for mallo and free and stuff
+#include <stdlib.h>
 // for vector manipulation
 #include "vector.h"
 
+
 struct NeuralNet {
-  int layerCount;
-  int * layerSizes;
-  Vector ** weightLayers;
-  Vector ** activationLayers;
+  int depth;
+  int * sizes;
+  Vector ** weights;
+  Vector ** neurons;
 };
 
 typedef struct NeuralNet NeuralNet;
 
 
-static float softMax(float f);
-
-static float randomFloat(FILE * source);
+float softMax(float f);
 
 NeuralNet * initNet(int activationLayerCount, int * layerSizes);
 
+void netFree(NeuralNet * net);
+
 void randomizeWeights(NeuralNet * net);
 
-float netGetNodeValue(NeuralNet * net, int nodeLayer, int nodeRow);
-
-float netGetWeightValue(NeuralNet * net, int weightLayer, int weightRow, int weightColumn);
-
-void netSetWeightValue(NeuralNet * net, int weightLayer, int weightRow, int weightColumn, float value);
-
-void netSetNodeValue(NeuralNet * net, int nodeLayer, int nodeRow, float value);
-
-float nodeDerivative(NeuralNet * net, int nodeLayer, int nodeRow, int weightLayer, int weightRow, int weightColumn);
-
-// populate the neural net for the given input
 void netCalculate(NeuralNet * net, Vector * input);
+
+float netGetNeuron(NeuralNet * net, int layer, int row);
+
+float netGetWeight(NeuralNet * net, int layer, int outputRow, int inputRow);
+
+void netSetWeight(NeuralNet * net, int layer, int outputRow, int inputRow, float value);
+
+void netSetNeuron(NeuralNet * net, int layer, int row, float value);
+
+float nodeDerivative(NeuralNet * net, int nodeLayer, int nodeRow, int weightLayer, int outputRow, int inputRow);
+
 
 #endif

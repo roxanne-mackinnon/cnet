@@ -16,19 +16,48 @@ void testVectorBinary(int oneHeight, int oneWidth, int twoHeight, int twoWidth);
 
 void testVectorApply(int height, int width, float (*foo)(float));
 
+void testNetInit(int depth, int maxSize);
+
+void testNetRandomizeWeights(int * sizes, int seed);
+
+
+
 int main(int argc, char * argv[]) {
 
-  // parameters: height, width, and random_seed
-  testVectorRandomize(1, 1, 69);
-  testVectorRandomize(200, 200, 0);
-  testVectorRandomize(5000, 2, 10000);
-
-  /* testVectorEqual(1, 69); */
-  /* testVectorEqual(1, 4000); */
-  /* testVectorEqual(0, 78765); */
-  /* testVectorEqual(0, 987098); */
-
+  
+  
   return 0;
+}
+
+
+void testNetInit(int depth, int maxSize) {
+
+  int * sizes = malloc(depth * sizeof(int));
+  int lastSize = maxSize;
+  for (int i = 0; i < depth; i++) {
+    sizes[i] = (rand() % lastSize) + 1;
+    lastSize = sizes[i];
+  }
+  
+  NeuralNet * net = initNet(depth, sizes);
+
+  // Make sure of the simple stuff
+  assert(net->depth == depth);
+  assert(!memcmp(sizes, net->sizes, depth * sizeof(int)));
+
+  for (int layer = 0; layer < net->depth - 1; layer++) {
+    assert(net->neurons[layer]->height == sizes[layer]);
+    assert(net->neurons[layer]->width == 1);
+
+    assert(net->weights[layer]->height == sizes[layer + 1]);
+    assert(net->weights[layer]->width == sizes[layer]);
+  }
+
+  assert(net->neurons[net->depth - 1]->height == sizes[depth - 1]);
+  assert(net->neurons[net->depth - 1]->width == 1);  
+  
+  netFree(net);
+  free(sizes);
 }
 
 void testVectorEqual(int doEqual, int seed) {
