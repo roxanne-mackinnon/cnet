@@ -1,16 +1,16 @@
+CC=gcc -g -Wall
 
-idxreader: idxreader.c idxreader.h
-	gcc -g -c idxreader.c
+idxreader.o: idxreader.c idxreader.h
+	$(CC) -c idxreader.c
 
-test: net vector test.c
-	gcc -g -o test test.c neural_net.o vector.o
+test_cnet: cnet.o vector.o test_cnet.c
+	$(CC) -o test_cnet test_cnet.c cnet.o vector.o
 
-net: neural_net.c neural_net.h vector
-	gcc -g -c neural_net.c
+cnet.o: cnet.c cnet.h vector.o
+	$(CC) -c cnet.c
 
-vector: vector.c vector.h
-	gcc -g -c vector.c
+vector.o: vector.c vector.h
+	$(CC) -c vector.c
 
 clean:
-	rm -rf *.o *.dSYM *.s
-	rm -f test
+	rm -rf *.o test_cnet
