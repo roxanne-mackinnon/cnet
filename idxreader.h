@@ -18,24 +18,43 @@
  *
  * <rdm3@williams.edu> Roxanne MacKinnon
  */
-#ifndef READER_H
-#define READER_H
-
+#ifndef __IDX_READER_H__
+#define __IDX_READER_H__
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <stddef.h>
 
-struct IdxFile {
+
+// We arbitrarily decide that an idx file may have no more than 64 dimensions
+// (noting that 3 is the standard number of dimensions for any normal ML dataset)
+#define IDX_MAX_DIMS 64
+
+typedef struct IdxFileHeader {
+  char blank[2];
+  char magic_number; /* encodes the type/size of the data */
+  unsigned char num_dims; /* number of dimensions of data, normally 1-3 */
+  unsigned int dims[IDX_MAX_DIMS]; /* vector of dimension sizes */
+} IdxFileHeader;
+
+typedef struct IdxFile {
   FILE * source;
+  IdxFileHeader header;
   int startingByte;
   int count;
   int width;
   int height;
   int size;
-};
+} IdxFile;
 
-typedef struct IdxFile IdxFile;
+typedef enum IdxDataType {
+  IDX_UCHAR  = 0x08,
+  IDX_SCHAR  = 0x09,
+  IDX_SHORT  = 0x0B,
+  IDX_INT    = 0x0C,
+  IDX_FLOAT  = 0x0D,
+  IDX_DOUBLE = 0x0E
+} IdxDataType;
 
 
 IdxFile * initFile(char * fileName);

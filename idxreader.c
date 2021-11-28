@@ -18,28 +18,104 @@
  *
  * <rdm3@williams.edu> Roxanne MacKinnon
  */
+#include <endian.h>
+#include <errno.h>
 #include "idxreader.h"
 
 
+/**
+ * return 0 if all is well, -1 if header is malformed
+ * assumes fewer than IDX_MAX_DIMS 
+ */
+static int initHeader(FILE * file, IdxFileHeader * header) {
+
+  fseek(file, 0, SEEK_SET);
+
+  // read in two blanks, a magic number, and the num of dimensions
+  fread((void *)&result, 1, 4, file);
+
+  // should start with two blanks
+  if (result->blank[0] != 0x0 || result->blank[1] != 0x0) {
+    errno = EINVAL;
+    return -1;
+  }
+
+  // this relies on the implementation of IdxDataType!! It should
+  // still be fine as long as IdxDataType is consistent with idx
+  // standard.
+  if (result->magic_number < IDX_UCHAR || result->magic_number > IDX_DOUBLE) {
+    errno = EINVAL;
+    return -1;
+  }
+
+  // is this safe for unsigned int arr[]?
+  memset(header->dims, 0, IDX_MAX_DIMS * sizeof(unsigned int));
+  
+  // try to read in the dimensions, watch out for short files
+  int ret = fread(header->dims, sizeof(unsigned int), header->num_dims, file);
+  if (ret != header->num_dims) {
+    return -1;
+  }
+  
+  // convert from big endian format to little endian (big endian is standard for idx)
+  for (int i = 0; i < header->num_dims; i++) {
+    result->dims[i] = be32toh(result->dims[i]);
+  }
+  
+  return 0;
+}
+
+IdxFile * initFile(char * fileName) {
+  FILE * f = fopen(fileName, "r");
+  // if any occurs, return and pass whatever errno was set by fopen
+  if (f == NULL) {
+    return NULL;
+  }
+
+  IdxFile * result = malloc(sizeof(IdxFile));
+
+  int ret = initHeader(f, &(result->header));
+  result->source = f;
+  result->startingByte = 4 + 4 * dims;
+  result->count = count;
+  result->width = width;
+  result->height = height;
+  result->size = width * height;
+
+  return result;
+}
 void freeFile(IdxFile * file) {
+
+  if (file == NULL) {
+    return;
+  }
+  
   fclose(file->source);
   free(file);
 }
 
 void printMatrix(IdxFile * file, int n) {
+
+  if (file == NULL) {
+    return;
+  }
+  
   unsigned char * matrix = getMatrix(file, n);
   int width = file->width;
-  for (int i = 0; i < file->height; i++) {
-    for (int j = 0; j < file->width; j++) {
+  int height = file->height;
+  // iterate through each row and column of the image
+  // print 3 diff chars for 3 brightness levels
+  for (int i = 0; i < height; i++) {
+    for (int j = 0; j < width; j++) {
       switch (matrix[i * width + j] / 100) {
       case (0): {putchar(' '); break;}
       case (1):	{putchar('-'); break;}
       case (2):	{putchar('&'); break;}
       }
     }
+    // newline after each row
     putchar('\n');
   }
-  printf("---\n");
 }
 
 float * convertMatrix(unsigned char * matrix, int size) {
@@ -56,7 +132,7 @@ unsigned char * getMatrix(IdxFile * file, int n) {
     printf("Request for matrix %d out of bounds for given idx file of count %d.\n", n, file->count);
     exit(1);
   }
-
+1
   unsigned char * result = malloc((file->size) * sizeof(unsigned char));
   for (int i = 0; i < file->size; i++) {
     result[i] = fgetc(file->source);
@@ -65,57 +141,10 @@ unsigned char * getMatrix(IdxFile * file, int n) {
   return result;
 }
 
-IdxFile * initFile(char * fileName) {
-  FILE * f = fopen(fileName, "r");
-  if (f == NULL) {
-    printf("Error: invalid file name %s\n.", fileName);
-    exit(1);
-  }
+typedef struct IdxFileHeader {
+  char blank[2];
+  char magic_number; /* encodes the type/size of the data */
+  unsigned char num_dims; /* number of dimensions of data, normally 1-2 */
+  unsigned int * dims; /* vector of dimension sizes */
+} IdxFileHeader;
 
-  IdxFile * result = malloc(sizeof(IdxFile));
-
-  // Throw away the first 3 parts of the header
-  getc(f);
-  getc(f);
-  getc(f);
-  
-  unsigned char dims = getc(f);
-
-  getc(f);
-  getc(f);
-  unsigned int count = getc(f);
-  count = (count<<8) + getc(f);
-
-  // Get the number of matrices
-  unsigned int height;
-  unsigned int width;
-
-  if (dims == 1) {
-    height = 1;
-    width = 1;
-  }
-  else if (dims == 3) {
-    getc(f);
-    getc(f);
-    height = getc(f);
-    height = (height<<8) + getc(f);
-
-    getc(f);
-    getc(f);
-    width = getc(f);
-    width = (width<<8) + getc(f);
-  }
-  else {
-    printf("Invalid idx file. Probably you are reading it wrong.\n");
-    exit(1);
-  }
-
-  result->source = f;
-  result->startingByte = 4 + 4 * dims;
-  result->count = count;
-  result->width = width;
-  result->height = height;
-  result->size = width * height;
-
-  return result;
-}
