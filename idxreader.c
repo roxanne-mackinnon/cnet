@@ -25,7 +25,8 @@
 
 /**
  * return 0 if all is well, -1 if header is malformed
- * assumes fewer than IDX_MAX_DIMS 
+ * assumes fewer than IDX_MAX_DIMS
+ * EINVAL if file does not follow format
  */
 static int initHeader(FILE * file, IdxFileHeader * header) {
 
@@ -54,6 +55,12 @@ static int initHeader(FILE * file, IdxFileHeader * header) {
   // try to read in the dimensions, watch out for short files
   int ret = fread(header->dims, sizeof(unsigned int), header->num_dims, file);
   if (ret != header->num_dims) {
+    // if an error occurred, pass on that error to the caller
+    if (ferror(ret)) {
+      return -1;
+    }
+    // otherwise, set errno to EINVAL for invalid format
+    errno = EINVAL;
     return -1;
   }
   
